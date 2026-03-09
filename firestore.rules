@@ -1,0 +1,172 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, email, displayName, role, photoURL, createdAt
+    //
+    // Collection: tickets
+    // Fields: id, clientName, subject, priority, status, description, authorUid, createdAt
+    //
+    // Collection: clients
+    // Fields: name, industry, location, status, joinedAt
+    //
+    // Collection: jobs
+    // Fields: id, clientName, engineerName, type, date, rating, status
+    //
+    // Collection: posts
+    // Fields: id, author, content, image, date, likes, comments, createdAt
+    //
+    // Collection: settings
+    // Fields: adminPassword, updatedAt
+    //
+    // Collection: messages
+    // Fields: senderId, receiverId, content, timestamp, unread
+    //
+    // Collection: quotations
+    // Fields: id, clientName, project, amount, status, createdAt
+    //
+    // Collection: invoices
+    // Fields: id, clientName, amount, status, dueDate, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "desknet05@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'photoURL', 'parentClientEmail', 'status', 'createdAt']) &&
+             data.uid is string &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'client', 'engineer'];
+    }
+
+    function isValidTicket(data) {
+      return hasOnlyAllowedFields([
+        'id', 'clientName', 'clientEmail', 'subject', 'priority', 'status', 
+        'description', 'authorUid', 'createdAt', 'serviceType', 
+        'estimatedDuration', 'country', 'city', 'location', 
+        'contactEmail', 'contactPhone', 'ticketNumber', 'dateTime'
+      ]) &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() < 100 &&
+             data.subject is string && data.subject.size() > 0 && data.subject.size() < 200 &&
+             data.priority in ['Low', 'Medium', 'High', 'Critical', 'Critical (SLA)'] &&
+             data.status in ['Open', 'Pending', 'In Progress', 'Closed', 'Resolved', 'Completed', 'Awaiting Action'];
+    }
+
+    function isValidPost(data) {
+      return hasOnlyAllowedFields(['id', 'author', 'content', 'image', 'date', 'likes', 'comments', 'createdAt']) &&
+             data.author is string && data.content is string && data.content.size() < 5000 &&
+             (!('image' in data) || data.image is string);
+    }
+
+    function isValidSettings(data) {
+      return hasOnlyAllowedFields(['adminPassword', 'updatedAt']) &&
+             data.adminPassword is string && data.adminPassword.size() >= 6;
+    }
+
+    function isValidQuotation(data) {
+      return hasOnlyAllowedFields(['id', 'clientName', 'project', 'amount', 'status', 'createdAt']) &&
+             data.clientName is string && data.project is string &&
+             data.status in ['Draft', 'Sent', 'Approved', 'Rejected'];
+    }
+
+    function isValidInvoice(data) {
+      return hasOnlyAllowedFields(['id', 'clientName', 'amount', 'status', 'dueDate', 'createdAt']) &&
+             data.clientName is string &&
+             data.status in ['Paid', 'Pending', 'Overdue'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isOwner(userId) || (request.resource.data.parentClientEmail == request.auth.token.email)) && isValidUser(request.resource.data) && (request.resource.data.role != 'admin' || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || (resource.data.parentClientEmail == request.auth.token.email) || isAdmin()) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTicket(request.resource.data);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.authorUid);
+      allow delete: if isAdmin();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAuthenticated(); // For likes/comments
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId || isAdmin());
+      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.senderId || isAdmin());
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.receiverId || isAdmin()); // For marking as read
+    }
+
+    match /quotations/{quotationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /settings/admin_config {
+      allow read: if true; // Allowed for login verification
+      allow write: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

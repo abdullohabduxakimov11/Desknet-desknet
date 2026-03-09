@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "client", "engineer"] },
+        "photoURL": { "type": "string" },
+        "parentClientEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "Service ticket information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "subject": { "type": "string" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Critical"] },
+        "status": { "type": "string", "enum": ["Open", "Pending", "In Progress", "Closed"] },
+        "description": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientName", "subject", "priority", "status"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Client directory entry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "industry": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Pending", "Inactive"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "industry", "location", "status"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Job record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "engineerName": { "type": "string" },
+        "type": { "type": "string", "enum": ["On-Site", "Remote", "Project"] },
+        "date": { "type": "string", "format": "date-time" },
+        "rating": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["clientName", "engineerName", "type", "date"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "News or Job post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "author": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string", "description": "Base64 encoded image or URL" },
+        "date": { "type": "string" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["author", "content"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "System settings and configuration",
+      "type": "object",
+      "properties": {
+        "adminPassword": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminPassword"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "unread": { "type": "boolean" }
+      },
+      "required": ["senderId", "receiverId", "content", "timestamp"]
+    },
+    "Quotation": {
+      "title": "Quotation",
+      "description": "Service quotation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "project": { "type": "string" },
+        "amount": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Sent", "Approved", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientName", "project", "amount", "status"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Client invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "amount": { "type": "string" },
+        "status": { "type": "string", "enum": ["Paid", "Pending", "Overdue"] },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientName", "amount", "status", "dueDate"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "tickets": {
+      "schema": "Ticket",
+      "description": "Collection of service tickets"
+    },
+    "clients": {
+      "schema": "Client",
+      "description": "Collection of clients"
+    },
+    "jobs": {
+      "schema": "Job",
+      "description": "Collection of completed jobs"
+    },
+    "posts": {
+      "schema": "Post",
+      "description": "Collection of news and job posts"
+    },
+    "messages": {
+      "schema": "Message",
+      "description": "Collection of chat messages"
+    },
+    "quotations": {
+      "schema": "Quotation",
+      "description": "Collection of service quotations"
+    },
+    "invoices": {
+      "schema": "Invoice",
+      "description": "Collection of client invoices"
+    },
+    "settings": {
+      "schema": "Settings",
+      "description": "Collection of system settings"
+    }
+  }
+}
