@@ -294,30 +294,6 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ user, onLogout }) => {
       
       await setDoc(userRef, userData);
       
-      // Send welcome email via our backend API
-      try {
-        const response = await fetch('/api/users/send-welcome-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: newUser.username,
-            email: newUser.email,
-            role: newUser.role,
-            parentClientEmail: user.email,
-          }),
-        });
-        
-        const result = await response.json();
-        if (!result.success) {
-          console.warn("Email API returned success: false", result.message);
-        }
-      } catch (emailError) {
-        console.error("Failed to call email API:", emailError);
-        // We don't alert here because the user was already added to the DB
-      }
-
       setShowAddUserModal(false);
       setNewUser({ username: '', email: '', role: 'Viewer' });
       alert("User added successfully!");

@@ -55,7 +55,6 @@ import EngineerSignUpFlow from "./components/EngineerSignUpFlow";
 import EngineerPortal from "./components/EngineerPortal";
 import ClientPortal from "./components/ClientPortal";
 import AdminPortal from "./components/AdminPortal";
-import { GoogleGenAI } from "@google/genai";
 import { 
   auth, 
   db, 
@@ -498,93 +497,6 @@ const HomeHero = ({ onSignUpClick, onWatchDemoClick }: { onSignUpClick: () => vo
 };
 
 const VideoDemoModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [status, setStatus] = useState("");
-  const [hasKey, setHasKey] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      checkKey();
-    }
-  }, [isOpen]);
-
-  const checkKey = async () => {
-    const selected = await window.aistudio.hasSelectedApiKey();
-    setHasKey(selected);
-  };
-
-  const handleOpenKeySelector = async () => {
-    await window.aistudio.openSelectKey();
-    setHasKey(true);
-  };
-
-  const generateVideo = async () => {
-    setIsGenerating(true);
-    setError(null);
-    setStatus("Initializing Veo model...");
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      setStatus("Sending prompt to Veo... This might take a few minutes.");
-      let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: 'A cinematic high-tech demonstration of a global IT talent network platform. Sleek 3D interfaces showing engineers connecting from across the globe, digital maps glowing in teal, and professional collaboration in a futuristic workspace. High-end lighting and smooth camera movements.',
-        config: {
-          numberOfVideos: 1,
-          resolution: '720p',
-          aspectRatio: '16:9'
-        }
-      });
-
-      const messages = [
-        "Analyzing your request...",
-        "Crafting cinematic visuals...",
-        "Rendering global network nodes...",
-        "Finalizing high-tech demonstration...",
-        "Optimizing for playback..."
-      ];
-      let msgIndex = 0;
-
-      while (!operation.done) {
-        setStatus(messages[msgIndex % messages.length]);
-        msgIndex++;
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-      }
-
-      setStatus("Video generated! Preparing download...");
-      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      
-      if (downloadLink) {
-        const response = await fetch(downloadLink, {
-          method: 'GET',
-          headers: {
-            'x-goog-api-key': process.env.API_KEY || '',
-          },
-        });
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        setVideoUrl(url);
-      } else {
-        throw new Error("Failed to retrieve video link.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      if (err.message?.includes("Requested entity was not found")) {
-        setHasKey(false);
-        setError("API Key session expired or invalid. Please re-select your key.");
-      } else {
-        setError("An error occurred during video generation. Please try again.");
-      }
-    } finally {
-      setIsGenerating(false);
-      setStatus("");
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -616,69 +528,15 @@ const VideoDemoModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </div>
 
           <div className="aspect-video bg-brand-dark/50 rounded-2xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden group">
-            {videoUrl ? (
-              <video 
-                src={videoUrl} 
-                controls 
-                autoPlay 
-                className="w-full h-full object-cover"
-              />
-            ) : isGenerating ? (
-              <div className="text-center p-8">
-                <Loader2 className="w-12 h-12 text-brand-teal animate-spin mx-auto mb-6" />
-                <p className="text-xl font-bold text-white mb-2">{status}</p>
-                <p className="text-sm text-white/40">This usually takes 1-3 minutes. Please stay on this page.</p>
+            <div className="text-center p-8">
+              <div className="w-20 h-20 bg-brand-teal/10 rounded-full flex items-center justify-center mx-auto mb-8">
+                <Play className="w-10 h-10 text-brand-teal fill-brand-teal" />
               </div>
-            ) : !hasKey ? (
-              <div className="text-center p-8 max-w-md">
-                <div className="w-16 h-16 bg-brand-teal/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Lock className="w-8 h-8 text-brand-teal" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-4">API Key Required</h3>
-                <p className="text-sm text-white/50 mb-8 leading-relaxed">
-                  To generate high-quality AI video demonstrations, you need to select a paid Gemini API key from your Google Cloud project.
-                </p>
-                <div className="space-y-4">
-                  <button 
-                  onClick={handleOpenKeySelector}
-                  className="w-full py-4 bg-brand-teal text-brand-dark font-semibold rounded-xl hover:bg-teal-300 transition-all flex items-center justify-center gap-2"
-                >
-                  Select API Key
-                </button>
-                  <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-brand-teal hover:underline flex items-center justify-center gap-1"
-                  >
-                    Learn about billing <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center p-8">
-                <div className="w-20 h-20 bg-brand-teal/10 rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform">
-                  <Play className="w-10 h-10 text-brand-teal fill-brand-teal" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-4">Ready to Generate</h3>
-                <p className="text-white/50 mb-10 max-w-sm mx-auto">
-                  Click below to generate a real-time AI demonstration of the DeskNet platform.
-                </p>
-                <button 
-                  onClick={generateVideo}
-                  className="px-12 py-4 bg-brand-teal text-brand-dark font-semibold rounded-xl hover:bg-teal-300 transition-all shadow-lg shadow-brand-teal/20"
-                >
-                  Generate Demo Video
-                </button>
-              </div>
-            )}
-
-            {error && (
-              <div className="absolute bottom-6 left-6 right-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+              <h3 className="text-2xl font-bold text-white mb-4">Demo Coming Soon</h3>
+              <p className="text-white/50 mb-10 max-w-sm mx-auto">
+                We are currently updating our platform demonstration. Please check back later or contact our sales team for a live walkthrough.
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

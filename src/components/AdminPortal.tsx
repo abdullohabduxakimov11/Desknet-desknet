@@ -223,29 +223,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       
       await setDoc(userRef, userData);
       
-      // Send welcome email via our backend API
-      try {
-        const response = await fetch('/api/users/send-welcome-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: newUser.username,
-            email: newUser.email,
-            role: newUser.role,
-            parentClientEmail: 'Admin',
-          }),
-        });
-        
-        const result = await response.json();
-        if (!result.success) {
-          console.warn("Email API returned success: false", result.message);
-        }
-      } catch (emailError) {
-        console.error("Failed to call email API:", emailError);
-      }
-
       setShowAddUserModal(false);
       setNewUser({ username: '', email: '', role: 'client', status: 'Active' });
       alert(`${newUser.role} added successfully!`);
